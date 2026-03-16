@@ -8,8 +8,10 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   checks: write
+  pages: write
+  id-token: write
 
 jobs:
   test:
@@ -36,7 +38,7 @@ jobs:
 
     - name: Run tests with coverage
       run: |
-        uv run pytest tests/ --cov=meta_prov_fixer --cov-report=term | tee coverage_output.txt
+        uv run pytest tests/ --cov=meta_prov_fixer --cov-report=term --cov-report=html:htmlcov | tee coverage_output.txt
         echo "COVERAGE=$(grep TOTAL coverage_output.txt | awk '{print $4}')" >> $GITHUB_ENV
 
     - name: Generate coverage badge
@@ -67,3 +69,21 @@ jobs:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         repository: opencitations/meta_prov_fixer
         actor: opencitations
+
+    - name: Upload coverage report to GitHub Pages artifact
+      if: github.ref == 'refs/heads/main' && matrix.python-version == '3.11'
+      uses: actions/upload-pages-artifact@v4
+      with:
+        path: htmlcov/
+
+  deploy-pages:
+    needs: test
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

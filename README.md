@@ -1,7 +1,7 @@
 # meta-prov-fixer
 
 [![Run tests](https://github.com/opencitations/meta_prov_fixer/actions/workflows/test.yml/badge.svg)](https://github.com/opencitations/meta_prov_fixer/actions/workflows/test.yml)
-![Coverage](https://byob.yarr.is/opencitations/meta_prov_fixer/coverage)
+[![Coverage](https://byob.yarr.is/opencitations/meta_prov_fixer/coverage)](https://opencitations.github.io/meta_prov_fixer/)
 ![Python versions](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-blue)
 [![License: ISC](https://img.shields.io/badge/license-ISC-green.svg)](LICENSE)
 
