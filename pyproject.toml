@@ -1,28 +1,29 @@
-[tool.poetry]
+[project]
 name = "meta-prov-fixer"
 version = "0.1.0"
-description = ""
-authors = ["eliarizzetto <elia.rizzetto@gmail.com>"]
+description = "A toolkit to detect and fix issues in the OpenCitations Meta provenance dataset"
 readme = "README.md"
+license = "ISC"
+authors = [
+    { name = "Elia Rizzetto", email = "elia.rizzetto@gmail.com" },
+    { name = "Arcangelo Massari", email = "arcangelo.massari@unibo.it" },
+]
+requires-python = ">=3.11, <3.14"
+dependencies = [
+    "docker>=7.1.0",
+    "oc-ocdm>=9.4.4",
+    "rdflib>=7.6.0",
+    "sparqlite>=1.2.1",
+    "sparqlwrapper>=2.0.0",
+    "tqdm>=4.67.3",
+    "tzdata>=2025.3",
+]
 
-[tool.poetry.dependencies]
-python = ">=3.11,<3.14"
-tqdm = "^4.67.1"
-tzdata = "^2025.2"
-rdflib = "^7.1.4"
-sparqlwrapper = "^2.0.0"
-docker = "^7.1.0"
-oc-ocdm = "^9.3.0"
-sparqlite = "^1.0.0"
-
-
-[tool.poetry.group.dev.dependencies]
-pytest = "^8.3.5"
-pytest-cov = "^6.1.1"
-notebook = "^7.4.1"
-ipykernel = "^6.29.5"
-pandas = "^2.2.3"
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+[dependency-groups]
+dev = [
+    "ipykernel>=7.2.0",
+    "notebook>=7.5.5",
+    "pandas>=3.0.1",
+    "pytest>=9.0.2",
+    "pytest-cov>=7.0.0",
+]

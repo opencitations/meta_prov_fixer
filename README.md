@@ -1,5 +1,10 @@
 # meta-prov-fixer
 
+[![Run tests](https://github.com/opencitations/meta_prov_fixer/actions/workflows/test.yml/badge.svg)](https://github.com/opencitations/meta_prov_fixer/actions/workflows/test.yml)
+![Coverage](https://byob.yarr.is/opencitations/meta_prov_fixer/coverage)
+![Python versions](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-blue)
+[![License: ISC](https://img.shields.io/badge/license-ISC-green.svg)](LICENSE)
+
 A toolkit to detect and fix issues in the OpenCitations Meta provenance dataset.
 
 This repository provides a set of fixers that detect issues reading local RDF dump files and apply corrective updates to the triplestore and the RDF files. The pipeline coordinates the fixers, supports checkpointing, and logging.
@@ -16,7 +21,7 @@ This repository provides a set of fixers that detect issues reading local RDF du
 
 ## Requirements
 
-The project uses Python 3.11 and manages dependencies with Python Poetry (see `pyproject.toml`). Key runtime dependencies are:
+The project uses Python >=3.11 and manages dependencies with [UV](https://docs.astral.sh/uv/) (see `pyproject.toml`). Key runtime dependencies are:
 
 - rdflib
 - SPARQLWrapper
@@ -24,16 +29,10 @@ The project uses Python 3.11 and manages dependencies with Python Poetry (see `p
 - tzdata
 - docker
 
-Make sure you have Poetry installed. Then, install dependencies with:
+Make sure you have UV installed. Then, install dependencies with:
 
 ```bash
-poetry install
-```
-
-and activate the virtual environment with:
-
-```bash
-poetry env activate # for Poetry >= 2.2
+uv sync
 ```
 
 ## Quick usage
@@ -60,7 +59,7 @@ The main CLI entrypoint is `meta_prov_fixer/main.py`. It accepts the following o
 Detect issues from RDF files and fix them on the triplestore, and new correct copies of invalid files:
 
 ```shell
-poetry run python meta_prov_fixer/main.py -e http://localhost:8890/sparql/ -i "../meta_prov/br" -o "../fixed/br" -m meta_dumps.json 
+uv run python meta_prov_fixer/main.py -e http://localhost:8890/sparql/ -i "../meta_prov/br" -o "../fixed/br" -m meta_dumps.json 
 ```
 
 ### Dry-run mode
@@ -68,13 +67,13 @@ poetry run python meta_prov_fixer/main.py -e http://localhost:8890/sparql/ -i ".
 Run without updating the database (only write fixed files):
 
 ```shell
-poetry run python meta_prov_fixer/main.py -e http://localhost:8890/sparql/ -i "../meta_prov/br" -o "../fixed/br" -m meta_dumps.json --dry-run-db
+uv run python meta_prov_fixer/main.py -e http://localhost:8890/sparql/ -i "../meta_prov/br" -o "../fixed/br" -m meta_dumps.json --dry-run-db
 ```
 
 Run dry-run mode and log all detected issues to JSON-Lines files for analysis:
 
 ```shell
-poetry run python meta_prov_fixer/main.py -e http://localhost:8890/sparql/ -i "../meta_prov/br" -o "../fixed/br" -m meta_dumps.json --dry-run-db --dry-run-issues-dir "issues_output"
+uv run python meta_prov_fixer/main.py -e http://localhost:8890/sparql/ -i "../meta_prov/br" -o "../fixed/br" -m meta_dumps.json --dry-run-db --dry-run-issues-dir "issues_output"
 ```
 
 <!-- For detailed documentation on dry-run mode, issues logging, and parallel execution, see [DRY_RUN_USAGE.md](DRY_RUN_USAGE.md). -->

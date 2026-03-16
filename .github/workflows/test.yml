@@ -1,0 +1,69 @@
+name: Run tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  checks: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Install UV
+      uses: astral-sh/setup-uv@v7
+      with:
+        enable-cache: true
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install Python
+      run: uv python install
+
+    - name: Install dependencies
+      run: uv sync --locked --all-groups
+
+    - name: Run tests with coverage
+      run: |
+        uv run pytest tests/ --cov=meta_prov_fixer --cov-report=term | tee coverage_output.txt
+        echo "COVERAGE=$(grep TOTAL coverage_output.txt | awk '{print $4}')" >> $GITHUB_ENV
+
+    - name: Generate coverage badge
+      if: matrix.python-version == '3.11'
+      run: |
+        COVERAGE_NUM=$(echo ${{ env.COVERAGE }} | sed 's/%//')
+
+        if (( $(echo "$COVERAGE_NUM >= 90" | bc -l) )); then
+          COLOR="green"
+        elif (( $(echo "$COVERAGE_NUM >= 75" | bc -l) )); then
+          COLOR="yellow"
+        elif (( $(echo "$COVERAGE_NUM >= 60" | bc -l) )); then
+          COLOR="orange"
+        else
+          COLOR="red"
+        fi
+
+        echo "BADGE_COLOR=$COLOR" >> $GITHUB_ENV
+
+    - name: Create badge
+      if: matrix.python-version == '3.11'
+      uses: RubbaBoy/BYOB@v1.3.0
+      with:
+        name: coverage
+        label: "Coverage"
+        status: "${{ env.COVERAGE }}"
+        color: ${{ env.BADGE_COLOR }}
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        repository: opencitations/meta_prov_fixer
+        actor: opencitations
