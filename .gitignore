@@ -24,3 +24,6 @@ data_to_fix/
 
 prov_fix_failed_queries*.txt
 checkpoint.json
+issues_output/
+failed_queries/
+checkpoints/

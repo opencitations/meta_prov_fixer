@@ -141,7 +141,7 @@ def stream_and_fix_on_db(
         resume: If True, use checkpoint to skip already-processed data
     """
     client = SPARQLClient(endpoint)
-    issues_dir = Path(issues_dir)
+    issues_dir:Path = Path(issues_dir)
     jsonl_files = sorted(issues_dir.glob('*.jsonl'))
     logging.info(f"Found {len(jsonl_files)} JSON-Lines file(s)")
     logging.info(f"Checkpoint state at start: {checkpoint.state}")
@@ -281,15 +281,17 @@ def stream_and_fix_on_db(
                             total_pa_issues,
                             total_mo_issues
                         )
-                    
-                except (Exception, KeyboardInterrupt) as e:
+
+                except KeyboardInterrupt:
                     checkpoint.flush()
+                    logging.error("KeyboardInterrupt")
+                    client.close()
+                    raise
+
+                except Exception as e:
+                    checkpoint.flush()
+                    logging.error(e)
                     print(traceback.print_exc())
-                    if type(e) == KeyboardInterrupt:
-                        logging.error("KeyboardInterrupt")
-                    else:
-                        logging.error(e)
-        
         
         # Flush any remaining batches after each file
         flush_batches()
@@ -297,17 +299,18 @@ def stream_and_fix_on_db(
         elapsed_file = time.time() - start_time
 
         times_per_file.append(elapsed_file)
-        # logging.debug(f"Finished processing: {jsonl_file.name} in {elapsed_file:.2f} seconds.")
+
+        logging.info(f"Finished processing: {jsonl_file.name} in {elapsed_file:.2f} seconds.")
         if file_idx % 5 == 0:
             avg_time = sum(times_per_file) / len(times_per_file)
             est_remaining = avg_time * (len(jsonl_files) - file_idx - 1)
             logging.info(f"Average time per file with last {len(times_per_file)} files: {avg_time:.2f} seconds. Estimated time remaining: {est_remaining/3600:.2f} hours")
             times_per_file.clear()
 
-            # Recreate SPARQL client periodically to avoid pycurl memory issues
-            # logging.debug(f"Recreating SPARQLClient files to clear accumulated pycurl state.")
-            client.close()
-            client = SPARQLClient(endpoint)
+        # Recreate SPARQL client after every file to avoid pycurl memory issues
+        # logging.debug(f"Recreating SPARQLClient files to clear accumulated pycurl state.")
+        client.close()
+        client = SPARQLClient(endpoint)
 
 
         # Mark this file as completed in checkpoint

@@ -46,6 +46,7 @@ def monitor_and_restart(
     container_name: str,
     endpoint: str,
     threshold: float = 0.98,
+    restart_interval: int = 10800, # 3 hours
     mem_check_interval: int = 3600,
     healthcheck_interval: int = 180,
 ):
@@ -60,12 +61,14 @@ def monitor_and_restart(
     :param container_name: Name of the Docker container running Virtuoso
     :param endpoint: SPARQL endpoint URL
     :param threshold: Memory usage threshold (fraction of limit) to trigger restart
+    :param restart_interval: Interval (seconds) between restarts, to force periodic restarts even if memory usage is below threshold (default 3 hours)
     :param mem_check_interval: Interval (seconds) between memory usage checks
     :param healthcheck_interval: Interval (seconds) between SPARQL healthchecks
     """
     client = docker.from_env()
     GiB = 1024 ** 3
 
+    last_restart = 0
     last_mem_check = 0
     last_healthcheck = 0
 
@@ -75,21 +78,35 @@ def monitor_and_restart(
         try:
             container = client.containers.get(container_name)
 
-            # --- Virtuoso healthcheck ---
-            if now - last_healthcheck >= healthcheck_interval:
-                last_healthcheck = now
+            if now - last_restart > restart_interval:
+                logging.warning(f"[Virtuoso watchdog] Restart interval exceeded ({last_restart/3600} hours)-> restarting container")
+                container.restart()
+                last_restart = now
 
-                if not sparql_healthcheck(endpoint):
-                    logging.error(
-                        "[Virtuoso watchdog] SPARQL healthcheck failed -> restarting container"
-                    )
-                    container.restart()
+                logging.info("[Virtuoso watchdog] Sleeping 15 minutes to allow Virtuoso to restart and stabilize before healthcheck...")
+                time.sleep(900)
+                    
+                if sparql_healthcheck(endpoint):
+                    logging.info("[Virtuoso watchdog] SPARQL endpoint is back online")
+                else:
+                    logging.error("[Virtuoso watchdog] SPARQL endpoint DID NOT recover within timeout!")
 
-                    logging.info("[Virtuoso watchdog] Waiting for SPARQL endpoint to recover…")
-                    if wait_for_sparql(endpoint):
-                        logging.info("[Virtuoso watchdog] SPARQL endpoint is back online")
-                    else:
-                        logging.error("[Virtuoso watchdog] SPARQL endpoint DID NOT recover within timeout!")
+            # # --- Virtuoso healthcheck ---
+            # if now - last_healthcheck >= healthcheck_interval:
+            #     last_healthcheck = now
+
+            #     if not sparql_healthcheck(endpoint):
+            #         logging.error(
+            #             "[Virtuoso watchdog] SPARQL healthcheck failed -> restarting container"
+            #         )
+            #         container.restart()
+
+            #         logging.info("[Virtuoso watchdog] Waiting for SPARQL endpoint to recover…")
+            #         if wait_for_sparql(endpoint):
+            #             logging.info("[Virtuoso watchdog] SPARQL endpoint is back online")
+            #         else:
+            #             logging.error("[Virtuoso watchdog] SPARQL endpoint DID NOT recover within timeout!")
+
 
             # --- Container memory usage check ---
             if now - last_mem_check >= mem_check_interval:
@@ -116,6 +133,9 @@ def monitor_and_restart(
                     container.restart()
 
                     logging.info("[Virtuoso watchdog] Waiting for SPARQL endpoint to recover…")
+                    logging.info("Sleeping 15 minutes to allow Virtuoso to restart and stabilize before healthcheck...")
+                    time.sleep(900) 
+                    
                     if wait_for_sparql(endpoint):
                         logging.info("[Virtuoso watchdog] SPARQL endpoint is back online")
                     else:

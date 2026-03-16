@@ -731,15 +731,32 @@ def sparql_update(
         client.update(update_query)
         return True  # success
 
-    except (QueryError, EndpointError) as exc:
-        # log both syntax errors and endpoint errors that weren't recoverable
-        logging.warning(f"SPARQL UPDATE failed after retries: {type(exc).__name__}: {str(exc)[:1000].replace('\n', '\\n ')}...")
+    except QueryError as exc:
+        # log syntax errors that weren't recoverable
+        msg = str(exc)[:1000].replace('\n', '\\n ')
+        logging.warning(f"SPARQL UPDATE failed after retries: {type(exc).__name__}: {msg}...")
         with open(failed_log_fp, 'a', encoding='utf-8') as lf:
             lf.write(update_query.replace("\n", "\\n") + "\n")
             lf.write(f"# Failure: {type(exc).__name__}: {exc}\n\n")
             lf.flush()
         return False
 
+    except EndpointError as e:
+        # log endpoint errors that weren't recoverable
+        msg = str(e)[:1000].replace('\n', '\\n ')
+        logging.warning(f"SPARQL UPDATE failed after retries: {type(e).__name__}: {msg}...")
+        with open(failed_log_fp, 'a', encoding='utf-8') as lf:
+            lf.write(update_query.replace("\n", "\\n") + "\n")
+            lf.write(f"# Failure: {type(e).__name__}: {e}\n\n")
+            lf.flush()
+            
+        logging.warning(f"EndpointError --> Possible DB warmup underway: sleeping 15 minutes before sending other udpates...")
+        time.sleep(900)      
+
+        return False
+    
+    finally:
+        time.sleep(0.1)  # brief pause to avoid overwhelming the endpoint with rapid retries or subsequent updates
 
 
 def fix_provenance_process(
